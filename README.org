@@ -1,0 +1,22 @@
+* Overview
+
+This package defines a minor mode for haskell-mode in emacs that provides a
+[[https://github.com/abo-abo/hydra][hydra]] (i.e., a persistent keybinding).  The hydra allows for easy insertion of
+Haskell ~LANGUAGE~ pragmas in two to three keystrokes each.  This can be handy
+for modules requiring many language extensions to compile.  The minor mode sets
+the hydra to be triggered by the ~C-c l~ only in haskell-mode.
+
+The hydra includes a number of frequently-used extensions.  The ~o o~ keybinding
+in the hydra allows for the insertion of extensions not in the default list.
+
+** Screenshot
+[[haskell-pragma.png]]
+
+* Setup
+
+#+BEGIN_SRC emacs-lisp
+(use-package haskell-pragma
+  :ensure nil
+  :load-path "~/.emacs.d/local"
+  :init (add-hook 'haskell-mode-hook 'haskell-pragma-mode))
+#+END_SRC
