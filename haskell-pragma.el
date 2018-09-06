@@ -175,16 +175,18 @@
           ((string-match haskell-pragma--module-rx ln) (throw 'haskell-pragma--break nil)))))
 
 (defun haskell-pragma--index-extensions ()
-  "Return an index (hash table) of all of the extensions currently enabled in the file."
+  "Return an index (hash table) and the point at the end of the pragma block of all of the extensions currently enabled in the file."
   (interactive)
-  (let* ((tbl (make-hash-table :test 'equal)))
+  (let* ((tbl (make-hash-table :test 'equal))
+         (max-pragma-point nil))
     (save-excursion
       (goto-char (point-min))
       (catch 'haskell-pragma--break
         (while (not (eobp))
           (haskell-pragma--record-existing-pragma tbl)
+          (setq max-pragma-point (point))
           (forward-line 1)))
-      tbl)))
+      (cons tbl max-pragma-point))))
 
 (defun haskell-pragma--unconditional-add-extension (ext-name)
   "Unconditionally add LANGUAGE EXT-NAME pragma at the top of a file."
@@ -195,9 +197,12 @@
 ;;;###autoload
 (defun haskell-pragma-add-extension (ext-name)
   "Add LANGUAGE pragma EXT-NAME to the top of the file, unless it is already enabled."
-  (let ((current-pragmas (haskell-pragma--index-extensions)))
+  (let* ((current-pragmas-count (haskell-pragma--index-extensions))
+        (current-pragmas (car current-pragmas-count))
+        (max-pragma-point (cdr current-pragmas-count)))
     (unless (gethash ext-name current-pragmas)
-      (haskell-pragma--unconditional-add-extension ext-name))))
+      (haskell-pragma--unconditional-add-extension ext-name)
+      (sort-lines nil (point-min) max-pragma-point))))
 
 ;;;###autoload
 (defun haskell-pragma-add-other-extension (ext-name)
