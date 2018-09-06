@@ -194,15 +194,30 @@
     (goto-char (point-min))
     (insert "{-# LANGUAGE " ext-name " #-}\n")))
 
+(defun haskell-pragma--sort-pragmas ()
+  "Sort the pragmas at the top of the file."
+  (interactive)
+  (let* ((tbl (make-hash-table :test 'equal))
+         (max-pragma-point nil))
+    (save-excursion
+      (goto-char (point-min))
+      (catch 'haskell-pragma--break
+        (while (not (eobp))
+          (haskell-pragma--record-existing-pragma tbl)
+          (setq max-pragma-point (point))
+          (forward-line 1)))
+      (when max-pragma-point
+        (sort-lines nil (point-min) max-pragma-point)))))
+
 ;;;###autoload
 (defun haskell-pragma-add-extension (ext-name)
   "Add LANGUAGE pragma EXT-NAME to the top of the file, unless it is already enabled."
   (let* ((current-pragmas-count (haskell-pragma--index-extensions))
-        (current-pragmas (car current-pragmas-count))
-        (max-pragma-point (cdr current-pragmas-count)))
+         (current-pragmas (car current-pragmas-count))
+         (max-pragma-point (cdr current-pragmas-count)))
     (unless (gethash ext-name current-pragmas)
       (haskell-pragma--unconditional-add-extension ext-name)
-      (sort-lines nil (point-min) max-pragma-point))))
+      (haskell-pragma--sort-pragmas))))
 
 ;;;###autoload
 (defun haskell-pragma-add-other-extension (ext-name)
