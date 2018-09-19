@@ -165,11 +165,34 @@
       (match-string 1 ln)
     nil))
 
+(defun haskell-pragma--current-line ()
+  "Return the plain contents of the current line."
+  (let* ((lb (line-beginning-position))
+         (le (line-end-position)))
+    (buffer-substring-no-properties lb le)))
+
+(defun haskell-pragma--pragma-at-current-pos ()
+  "Return the pragma on the line containing the current position,
+   or nil if there is no pragma on the current line."
+  (haskell-pragma--pragma-on-line (haskell-pragma--current-line)))
+
+(defun haskell-pragma--pragma-start-point ()
+  "Return the point where the pragmas start.  If no pragmas, returns the min point of the buffer"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((fnd nil))
+      (while (and (eq fnd nil) (not (eobp)))
+        (let* ((lb (line-beginning-position))
+               (ln (haskell-pragma--current-line)))
+          (setq fnd (cond ((string-match haskell-pragma--pragma-rx ln) lb)
+                          ((string-match haskell-pragma--module-rx ln) (point-min))))
+        (forward-line)))
+      (if (eq fnd nil) (point-min) fnd))))
+
 (defun haskell-pragma--record-existing-pragma (tbl)
   "If the current line contains a pragma, record it in TBL with a t value."
-  (let* ((lb (line-beginning-position))
-         (le (line-end-position))
-         (ln (buffer-substring-no-properties lb le))
+  (let* ((ln (haskell-pragma--current-line))
          (pragma (haskell-pragma--pragma-on-line ln)))
     (cond (pragma (puthash pragma t tbl))
           ((string-match haskell-pragma--module-rx ln) (throw 'haskell-pragma--break nil)))))
@@ -180,7 +203,7 @@
   (let* ((tbl (make-hash-table :test 'equal))
          (max-pragma-point nil))
     (save-excursion
-      (goto-char (point-min))
+      (goto-char (haskell-pragma--pragma-start-point))
       (catch 'haskell-pragma--break
         (while (not (eobp))
           (haskell-pragma--record-existing-pragma tbl)
@@ -191,23 +214,29 @@
 (defun haskell-pragma--unconditional-add-extension (ext-name)
   "Unconditionally add LANGUAGE EXT-NAME pragma at the top of a file."
   (save-excursion
-    (goto-char (point-min))
+    (goto-char (haskell-pragma--pragma-start-point))
     (insert "{-# LANGUAGE " ext-name " #-}\n")))
 
 (defun haskell-pragma--sort-pragmas ()
   "Sort the pragmas at the top of the file."
+  ;; Note: this only sorts the *first* block of pragmas in a file.  If
+  ;; there are multiple pragma blocks separated by non-pragma lines
+  ;; (including blank lines) then the others are ignored.  Insertion
+  ;; of pragmas always occurs at the first block, so this means that
+  ;; manually manipulated pragmas will be ignored whereas pragmas
+  ;; inserted by this module will be handled.
   (interactive)
-  (let* ((tbl (make-hash-table :test 'equal))
+  (let* ((min-pragma-point (haskell-pragma--pragma-start-point))
          (max-pragma-point nil))
     (save-excursion
-      (goto-char (point-min))
+      (goto-char min-pragma-point)
       (catch 'haskell-pragma--break
         (while (not (eobp))
-          (haskell-pragma--record-existing-pragma tbl)
-          (setq max-pragma-point (point))
-          (forward-line 1)))
+          (if (haskell-pragma--pragma-at-current-pos)
+              (setq max-pragma-point (progn (forward-line) (point)))
+            (throw 'haskell-pragma--break nil))))
       (when max-pragma-point
-        (sort-lines nil (point-min) max-pragma-point)))))
+        (sort-lines nil min-pragma-point max-pragma-point)))))
 
 ;;;###autoload
 (defun haskell-pragma-add-extension (ext-name)
