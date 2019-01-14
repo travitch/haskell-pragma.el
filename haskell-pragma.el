@@ -272,6 +272,7 @@ _t r_: RankNTypes                 _s u s_: UnboxedSums
 _t s_: ScopedTypeVariables        _s u t_: UnboxedTuples    _o c_: CPP
 _t t a_: TypeApplications         _s v_: ViewPatterns       _o i_: ImplicitParams
 _t t f_: TypeFamilies
+_t i_: TypeInType
 _t t o_: TypeOperators
 _t u_: UndecidableInstances
 "
@@ -289,6 +290,7 @@ _t u_: UndecidableInstances
   ("t s" (haskell-pragma-add-extension "ScopedTypeVariables"))
   ("t t a" (haskell-pragma-add-extension "TypeApplications"))
   ("t t f" (haskell-pragma-add-extension "TypeFamilies"))
+  ("t i" (haskell-pragma-add-extension "TypeInType"))
   ("t t o" (haskell-pragma-add-extension "TypeOperators"))
   ("t u" (haskell-pragma-add-extension "UndecidableInstances"))
   ("s b" (haskell-pragma-add-extension "BangPatterns"))
